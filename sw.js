@@ -1,6 +1,3 @@
-// Version 2.0 - Erzwingt Aktualisierung im Browser
-const CACHE_NAME = 'shared-images-v2';
-
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
@@ -9,31 +6,52 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(clients.claim());
 });
 
+// Hilfsfunktion: Speichert die empfangene Datei sicher in der IndexedDB
+function storeFileInIDB(fileBlob) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('SharedNotesDB', 1);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('files')) {
+        db.createObjectStore('files');
+      }
+    };
+    request.onsuccess = (e) => {
+      const db = e.target.result;
+      const tx = db.transaction('files', 'readwrite');
+      const store = tx.objectStore('files');
+      store.put(fileBlob, 'pendingNote');
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method === 'POST') {
     event.respondWith(
       (async () => {
         try {
           const formData = await event.request.formData();
-          let mediaFile = null;
+          let sharedFile = null;
 
-          // Sucht nach der ersten Datei in den gesendeten Formulardaten
-          for (const entry of formData.values()) {
-            if (entry && typeof entry === 'object' && entry.name) {
-              mediaFile = entry;
+          // Durchsucht alle hochgeladenen Formularfelder nach der Datei
+          for (const value of formData.values()) {
+            if (value && typeof value === 'object' && value.size > 0) {
+              sharedFile = value;
               break;
             }
           }
 
-          if (mediaFile) {
-            const cache = await caches.open(CACHE_NAME);
-            await cache.put('shared-note', new Response(mediaFile));
+          if (sharedFile) {
+            await storeFileInIDB(sharedFile);
           }
-        } catch (e) {
-          console.error('Share processing error:', e);
+        } catch (err) {
+          console.error("SW Share Error:", err);
         }
-        
-        // Leitet zurück zur App weiter
+
+        // Leitet auf die Hauptseite weiter
         return Response.redirect('./index.html?shared=true', 303);
       })()
     );

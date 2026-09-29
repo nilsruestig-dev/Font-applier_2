@@ -6,7 +6,6 @@
   <title>Font Studio</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#4f46e5">
-  <!-- PDF.js Bibliothek für die automatische Umwandlung geteilter PDFs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -77,8 +76,6 @@
       gap: 8px;
     }
     .empty-state.hidden { display: none !important; }
-    .empty-title { font-weight: 600; font-size: 15px; color: #334155; }
-    .empty-desc { font-size: 12px; color: #64748b; max-width: 260px; margin-bottom: 8px; }
 
     .btn {
       background: #4f46e5;
@@ -93,7 +90,6 @@
       align-items: center;
       justify-content: center;
       gap: 6px;
-      text-decoration: none;
     }
     .btn:active { transform: scale(0.98); }
     .btn-secondary { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
@@ -119,7 +115,6 @@
       font-size: 14px;
       outline: none;
     }
-    input[type="text"]:focus, select:focus { border-color: #4f46e5; }
 
     .row { display: flex; gap: 8px; align-items: center; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -159,13 +154,12 @@
   </header>
 
   <main>
-    <!-- Canvas Bildbereich -->
     <div class="canvas-card">
       <canvas id="mainCanvas"></canvas>
 
       <div id="emptyState" class="empty-state">
-        <div class="empty-title">Kein Dokument geladen</div>
-        <div class="empty-desc">Teile ein Dokument aus Samsung Notes oder wähle manuell ein Bild/PDF.</div>
+        <div style="font-weight: 600; font-size: 15px;">Kein Dokument geladen</div>
+        <div style="font-size: 12px; color: #64748b; max-width: 260px; margin-bottom: 8px;">Teile ein Dokument aus Samsung Notes oder wähle manuell ein Bild/PDF.</div>
         <label class="btn">
           Hintergrund wählen
           <input type="file" id="bgInput" accept="image/*,.pdf" class="hidden">
@@ -173,7 +167,6 @@
       </div>
     </div>
 
-    <!-- Einstellungen -->
     <div class="controls-card">
       <div class="form-group">
         <label>Text eingeben</label>
@@ -228,7 +221,6 @@
   <div id="toast">In Zwischenablage kopiert!</div>
 
   <script>
-    // PDF.js Worker initialisieren
     if (window['pdfjs-dist/build/pdf']) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
     }
@@ -239,62 +231,54 @@
     const toast = document.getElementById('toast');
 
     let bgImage = null;
-    let textState = {
-      text: "Eigener Handschrift-Text",
-      fontFamily: "cursive",
-      size: 36,
-      color: "#1e293b",
-      rotation: 0,
-      x: 0,
-      y: 0
-    };
+    let textState = { text: "Eigener Handschrift-Text", fontFamily: "cursive", size: 36, color: "#1e293b", rotation: 0, x: 0, y: 0 };
+    let isDragging = false, dragStart = { x: 0, y: 0 };
 
-    let isDragging = false;
-    let dragStart = { x: 0, y: 0 };
-
-    // Register Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
     }
 
-    // Liest geteilte Dateien (Bilder oder PDFs) aus dem Cache
-    async function checkSharedData() {
-      if ('caches' in window) {
-        try {
-          for (const cacheName of ['shared-images-v2', 'shared-images']) {
-            const cache = await caches.open(cacheName);
-            const response = await cache.match('shared-note');
-            if (response) {
-              const blob = await response.blob();
-              processFileBlob(blob);
-              await cache.delete('shared-note');
-              break;
-            }
+    // Liest die geteilte Datei aus IndexedDB aus
+    function checkIDBForSharedFile() {
+      const request = indexedDB.open('SharedNotesDB', 1);
+      request.onsuccess = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('files')) return;
+        const tx = db.transaction('files', 'readwrite');
+        const store = tx.objectStore('files');
+        const getReq = store.get('pendingNote');
+        getReq.onsuccess = () => {
+          if (getReq.result) {
+            processFileBlob(getReq.result);
+            // Nach dem Laden löschen
+            store.delete('pendingNote');
           }
-        } catch (e) {
-          console.error("Fehler beim Auslesen geteilter Daten:", e);
-        }
-      }
+        };
+      };
     }
-    window.addEventListener('load', checkSharedData);
 
-    // Verarbeitet Bild- und PDF-Dateien
+    window.addEventListener('load', checkIDBForSharedFile);
+
     function processFileBlob(blob) {
-      if (blob.type === 'application/pdf') {
+      if (blob.type === 'application/pdf' || (blob.name && blob.name.endsWith('.pdf'))) {
         const reader = new FileReader();
         reader.onload = async function() {
-          const typedarray = new Uint8Array(this.result);
-          const pdf = await pdfjsLib.getDocument(typedarray).promise;
-          const page = await pdf.getPage(1);
-          const viewport = page.getViewport({ scale: 1.5 });
+          try {
+            const typedarray = new Uint8Array(this.result);
+            const pdf = await pdfjsLib.getDocument(typedarray).promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 1.5 });
 
-          const tempCanvas = document.createElement('canvas');
-          const tempCtx = tempCanvas.getContext('2d');
-          tempCanvas.height = viewport.height;
-          tempCanvas.width = viewport.width;
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.height = viewport.height;
+            tempCanvas.width = viewport.width;
 
-          await page.render({ canvasContext: tempCtx, viewport: viewport }).promise;
-          loadBackgroundImage(tempCanvas.toDataURL());
+            await page.render({ canvasContext: tempCtx, viewport: viewport }).promise;
+            loadBackgroundImage(tempCanvas.toDataURL());
+          } catch (e) {
+            console.error("PDF-Fehler:", e);
+          }
         };
         reader.readAsArrayBuffer(blob);
       } else {
@@ -306,24 +290,18 @@
 
     function render() {
       if (!bgImage) {
-        canvas.width = 600;
-        canvas.height = 400;
+        canvas.width = 600; canvas.height = 400;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         return;
       }
-
-      canvas.width = bgImage.width;
-      canvas.height = bgImage.height;
-
+      canvas.width = bgImage.width; canvas.height = bgImage.height;
       ctx.drawImage(bgImage, 0, 0);
-
       ctx.save();
       ctx.translate(textState.x, textState.y);
       ctx.rotate((textState.rotation * Math.PI) / 180);
       ctx.font = `${textState.size}px ${textState.fontFamily}`;
       ctx.fillStyle = textState.color;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(textState.text, 0, 0);
       ctx.restore();
     }
@@ -406,8 +384,7 @@
       tempCtx.rotate((textState.rotation * Math.PI) / 180);
       tempCtx.font = `${textState.size}px ${textState.fontFamily}`;
       tempCtx.fillStyle = textState.color;
-      tempCtx.textAlign = 'center';
-      tempCtx.textBaseline = 'middle';
+      tempCtx.textAlign = 'center'; tempCtx.textBaseline = 'middle';
       tempCtx.fillText(textState.text, 0, 0);
       tempCtx.restore();
 

@@ -6,33 +6,144 @@
   <title>Font Studio</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#4f46e5">
-  <!-- PDF.js für die Umwandlung von geteilten PDFs -->
+  <!-- PDF.js Bibliothek für die automatische Umwandlung geteilter PDFs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f1f5f9; color: #1e293b; min-height: 100vh; display: flex; flex-direction: column; }
-    header { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 16px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 10; }
-    .logo { width: 32px; height: 32px; background: #4f46e5; color: #fff; font-weight: bold; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-    .title { font-size: 16px; font-weight: bold; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f1f5f9;
+      color: #1e293b;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .logo {
+      width: 32px; height: 32px; background: #4f46e5; color: #fff;
+      font-weight: bold; border-radius: 8px; display: flex;
+      align-items: center; justify-content: center; font-size: 18px;
+    }
+    .title { font-size: 16px; font-weight: bold; color: #0f172a; }
     .subtitle { font-size: 11px; color: #64748b; }
-    main { flex: 1; padding: 12px; max-width: 600px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 12px; }
-    .canvas-card { position: relative; background: #fff; border: 1px solid #cbd5e1; border-radius: 12px; min-height: 320px; display: flex; align-items: center; justify-content: center; overflow: hidden; background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 16px 16px; }
+    
+    main {
+      flex: 1;
+      padding: 12px;
+      max-width: 600px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .canvas-card {
+      position: relative;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      min-height: 320px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+
     canvas { max-width: 100%; max-height: 50vh; object-fit: contain; }
-    .empty-state { position: absolute; inset: 0; background: rgba(255, 255, 255, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; gap: 8px; }
+
+    .empty-state {
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.95);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      text-align: center;
+      gap: 8px;
+    }
     .empty-state.hidden { display: none !important; }
-    .btn { background: #4f46e5; color: #fff; border: none; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    .empty-title { font-weight: 600; font-size: 15px; color: #334155; }
+    .empty-desc { font-size: 12px; color: #64748b; max-width: 260px; margin-bottom: 8px; }
+
+    .btn {
+      background: #4f46e5;
+      color: #ffffff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+    .btn:active { transform: scale(0.98); }
     .btn-secondary { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
-    .controls-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+
+    .controls-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
     .form-group { display: flex; flex-direction: column; gap: 4px; }
     label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; }
-    input[type="text"], select { width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; }
+    
+    input[type="text"], select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+    }
+    input[type="text"]:focus, select:focus { border-color: #4f46e5; }
+
     .row { display: flex; gap: 8px; align-items: center; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
     .range-group { display: flex; flex-direction: column; gap: 2px; }
     .range-label { font-size: 11px; color: #64748b; display: flex; justify-content: space-between; }
     input[type="range"] { width: 100%; }
     input[type="color"] { width: 100%; height: 36px; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; }
-    #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #0f172a; color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 12px; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; z-index: 100; }
+
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0f172a;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      z-index: 100;
+    }
     #toast.show { opacity: 1; }
     .hidden { display: none !important; }
   </style>
@@ -48,12 +159,13 @@
   </header>
 
   <main>
+    <!-- Canvas Bildbereich -->
     <div class="canvas-card">
       <canvas id="mainCanvas"></canvas>
 
       <div id="emptyState" class="empty-state">
-        <div style="font-weight: 600; font-size: 15px;">Kein Dokument geladen</div>
-        <div style="font-size: 12px; color: #64748b; max-width: 260px; margin-bottom: 8px;">Teile ein Dokument aus Samsung Notes oder wähle manuell ein Bild.</div>
+        <div class="empty-title">Kein Dokument geladen</div>
+        <div class="empty-desc">Teile ein Dokument aus Samsung Notes oder wähle manuell ein Bild/PDF.</div>
         <label class="btn">
           Hintergrund wählen
           <input type="file" id="bgInput" accept="image/*,.pdf" class="hidden">
@@ -61,6 +173,7 @@
       </div>
     </div>
 
+    <!-- Einstellungen -->
     <div class="controls-card">
       <div class="form-group">
         <label>Text eingeben</label>
@@ -71,8 +184,8 @@
         <label>Schriftart</label>
         <div class="row">
           <select id="fontSelect" style="flex:1;">
-            <option value="sans-serif">Standard (Sans-Serif)</option>
             <option value="cursive">Handschrift (System Cursive)</option>
+            <option value="sans-serif">Standard (Sans-Serif)</option>
             <option value="monospace">Monospace</option>
             <option value="custom">Eigene Schriftdatei (.ttf / .otf)...</option>
           </select>
@@ -115,6 +228,7 @@
   <div id="toast">In Zwischenablage kopiert!</div>
 
   <script>
+    // PDF.js Worker initialisieren
     if (window['pdfjs-dist/build/pdf']) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
     }
@@ -125,23 +239,37 @@
     const toast = document.getElementById('toast');
 
     let bgImage = null;
-    let textState = { text: "Eigener Handschrift-Text", fontFamily: "cursive", size: 36, color: "#1e293b", rotation: 0, x: 0, y: 0 };
-    let isDragging = false, dragStart = { x: 0, y: 0 };
+    let textState = {
+      text: "Eigener Handschrift-Text",
+      fontFamily: "cursive",
+      size: 36,
+      color: "#1e293b",
+      rotation: 0,
+      x: 0,
+      y: 0
+    };
 
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+
+    // Register Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
     }
 
-    // Liest geteilte Dateien (Bilder/PDFs) direkt nach dem Aufruf aus
+    // Liest geteilte Dateien (Bilder oder PDFs) aus dem Cache
     async function checkSharedData() {
       if ('caches' in window) {
         try {
-          const cache = await caches.open('shared-images');
-          const response = await cache.match('shared-note');
-          if (response) {
-            const blob = await response.blob();
-            processFileBlob(blob);
-            await cache.delete('shared-note');
+          for (const cacheName of ['shared-images-v2', 'shared-images']) {
+            const cache = await caches.open(cacheName);
+            const response = await cache.match('shared-note');
+            if (response) {
+              const blob = await response.blob();
+              processFileBlob(blob);
+              await cache.delete('shared-note');
+              break;
+            }
           }
         } catch (e) {
           console.error("Fehler beim Auslesen geteilter Daten:", e);
@@ -150,6 +278,7 @@
     }
     window.addEventListener('load', checkSharedData);
 
+    // Verarbeitet Bild- und PDF-Dateien
     function processFileBlob(blob) {
       if (blob.type === 'application/pdf') {
         const reader = new FileReader();
@@ -177,18 +306,24 @@
 
     function render() {
       if (!bgImage) {
-        canvas.width = 600; canvas.height = 400;
+        canvas.width = 600;
+        canvas.height = 400;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         return;
       }
-      canvas.width = bgImage.width; canvas.height = bgImage.height;
+
+      canvas.width = bgImage.width;
+      canvas.height = bgImage.height;
+
       ctx.drawImage(bgImage, 0, 0);
+
       ctx.save();
       ctx.translate(textState.x, textState.y);
       ctx.rotate((textState.rotation * Math.PI) / 180);
       ctx.font = `${textState.size}px ${textState.fontFamily}`;
       ctx.fillStyle = textState.color;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
       ctx.fillText(textState.text, 0, 0);
       ctx.restore();
     }
@@ -228,11 +363,13 @@
     document.getElementById('colorPicker').addEventListener('input', (e) => { textState.color = e.target.value; render(); });
 
     const fontSelect = document.getElementById('fontSelect');
+    const customFontLabel = document.getElementById('customFontLabel');
+
     fontSelect.addEventListener('change', (e) => {
       if (e.target.value === 'custom') {
-        document.getElementById('customFontLabel').classList.remove('hidden');
+        customFontLabel.classList.remove('hidden');
       } else {
-        document.getElementById('customFontLabel').classList.add('hidden');
+        customFontLabel.classList.add('hidden');
         textState.fontFamily = e.target.value;
         render();
       }
@@ -269,7 +406,8 @@
       tempCtx.rotate((textState.rotation * Math.PI) / 180);
       tempCtx.font = `${textState.size}px ${textState.fontFamily}`;
       tempCtx.fillStyle = textState.color;
-      tempCtx.textAlign = 'center'; tempCtx.textBaseline = 'middle';
+      tempCtx.textAlign = 'center';
+      tempCtx.textBaseline = 'middle';
       tempCtx.fillText(textState.text, 0, 0);
       tempCtx.restore();
 

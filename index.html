@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Font Studio</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4f46e5">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f1f5f9;
+      color: #1e293b;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .logo {
+      width: 32px; height: 32px; background: #4f46e5; color: #fff;
+      font-weight: bold; border-radius: 8px; display: flex;
+      align-items: center; justify-content: center; font-size: 18px;
+    }
+    .title { font-size: 16px; font-weight: bold; color: #0f172a; }
+    .subtitle { font-size: 11px; color: #64748b; }
+    
+    main {
+      flex: 1;
+      padding: 12px;
+      max-width: 600px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .canvas-card {
+      position: relative;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      min-height: 320px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+
+    canvas { max-width: 100%; max-height: 50vh; object-fit: contain; }
+
+    .empty-state {
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.95);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      text-align: center;
+      gap: 8px;
+    }
+    .empty-state.hidden { display: none; }
+    .empty-title { font-weight: 600; font-size: 15px; color: #334155; }
+    .empty-desc { font-size: 12px; color: #64748b; max-width: 260px; margin-bottom: 8px; }
+
+    .btn {
+      background: #4f46e5;
+      color: #ffffff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-secondary { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
+
+    .controls-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; }
+    
+    input[type="text"], select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+    }
+    input[type="text"]:focus, select:focus { border-color: #4f46e5; }
+
+    .row { display: flex; gap: 8px; align-items: center; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .range-group { display: flex; flex-direction: column; gap: 2px; }
+    .range-label { font-size: 11px; color: #64748b; display: flex; justify-content: space-between; }
+    input[type="range"] { width: 100%; }
+    input[type="color"] { width: 100%; height: 36px; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; }
+
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0f172a;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      z-index: 100;
+    }
+    #toast.show { opacity: 1; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">F</div>
+    <div>
+      <div class="title">Font Studio</div>
+      <div class="subtitle">Samsung Notes Companion</div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Canvas Bildbereich -->
+    <div class="canvas-card">
+      <canvas id="mainCanvas"></canvas>
+
+      <div id="emptyState" class="empty-state">
+        <div class="empty-title">Kein Dokument geladen</div>
+        <div class="empty-desc">Teile ein Dokument aus Samsung Notes oder wähle manuell ein Bild.</div>
+        <label class="btn">
+          Hintergrund wählen
+          <input type="file" id="bgInput" accept="image/*" class="hidden">
+        </label>
+      </div>
+    </div>
+
+    <!-- Einstellungen -->
+    <div class="controls-card">
+      <div class="form-group">
+        <label>Text eingeben</label>
+        <input type="text" id="textInput" value="Eigener Handschrift-Text">
+      </div>
+
+      <div class="form-group">
+        <label>Schriftart</label>
+        <div class="row">
+          <select id="fontSelect" style="flex:1;">
+            <option value="sans-serif">Standard (Sans-Serif)</option>
+            <option value="cursive">Handschrift (System Cursive)</option>
+            <option value="monospace">Monospace</option>
+            <option value="custom">Eigene Schriftdatei (.ttf / .otf)...</option>
+          </select>
+
+          <label id="customFontLabel" class="btn btn-secondary hidden" style="white-space: nowrap;">
+            Upload
+            <input type="file" id="fontFileInput" accept=".ttf,.otf,.woff,.woff2" class="hidden">
+          </label>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="range-group">
+          <div class="range-label">Größe <span id="sizeVal">36px</span></div>
+          <input type="range" id="sizeRange" min="12" max="120" value="36">
+        </div>
+        <div class="range-group">
+          <div class="range-label">Farbe</div>
+          <input type="color" id="colorPicker" value="#1e293b">
+        </div>
+      </div>
+
+      <div class="range-group">
+        <div class="range-label">Drehung <span id="rotVal">0°</span></div>
+        <input type="range" id="rotRange" min="-180" max="180" value="0">
+      </div>
+
+      <div class="row" style="margin-top: 6px;">
+        <button id="copyBtn" class="btn" style="flex:1;">
+          Als transparentes PNG kopieren
+        </button>
+        <label class="btn btn-secondary">
+          Bild neu
+          <input type="file" id="bgInputSecondary" accept="image/*" class="hidden">
+        </label>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast">In Zwischenablage kopiert!</div>
+
+  <script>
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    const emptyState = document.getElementById('emptyState');
+    const toast = document.getElementById('toast');
+
+    let bgImage = null;
+    let textState = {
+      text: "Eigener Handschrift-Text",
+      fontFamily: "cursive",
+      size: 36,
+      color: "#1e293b",
+      rotation: 0,
+      x: 0,
+      y: 0
+    };
+
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
+    }
+
+    // Shared File Check
+    async function checkSharedData() {
+      if ('caches' in window) {
+        try {
+          const cache = await caches.open('shared-images');
+          const response = await cache.match('shared-note');
+          if (response) {
+            const blob = await response.blob();
+            const reader = new FileReader();
+            reader.onload = (e) => loadBackgroundImage(e.target.result);
+            reader.readAsDataURL(blob);
+            await cache.delete('shared-note');
+          }
+        } catch (e) {}
+      }
+    }
+    window.addEventListener('load', checkSharedData);
+
+    function render() {
+      if (!bgImage) {
+        canvas.width = 600;
+        canvas.height = 400;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+      }
+
+      canvas.width = bgImage.width;
+      canvas.height = bgImage.height;
+
+      ctx.drawImage(bgImage, 0, 0);
+
+      ctx.save();
+      ctx.translate(textState.x, textState.y);
+      ctx.rotate((textState.rotation * Math.PI) / 180);
+      ctx.font = `${textState.size}px ${textState.fontFamily}`;
+      ctx.fillStyle = textState.color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(textState.text, 0, 0);
+      ctx.restore();
+    }
+
+    function loadBackgroundImage(src) {
+      const img = new Image();
+      img.onload = () => {
+        bgImage = img;
+        emptyState.classList.add('hidden');
+        textState.x = img.width / 2;
+        textState.y = img.height / 2;
+        render();
+      };
+      img.src = src;
+    }
+
+    document.getElementById('bgInput').addEventListener('change', handleImageUpload);
+    document.getElementById('bgInputSecondary').addEventListener('change', handleImageUpload);
+
+    function handleImageUpload(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => loadBackgroundImage(event.target.result);
+        reader.readAsDataURL(file);
+      }
+    }
+
+    document.getElementById('textInput').addEventListener('input', (e) => { textState.text = e.target.value; render(); });
+    document.getElementById('sizeRange').addEventListener('input', (e) => {
+      textState.size = parseInt(e.target.value);
+      document.getElementById('sizeVal').innerText = e.target.value + 'px';
+      render();
+    });
+    document.getElementById('rotRange').addEventListener('input', (e) => {
+      textState.rotation = parseInt(e.target.value);
+      document.getElementById('rotVal').innerText = e.target.value + '°';
+      render();
+    });
+    document.getElementById('colorPicker').addEventListener('input', (e) => { textState.color = e.target.value; render(); });
+
+    const fontSelect = document.getElementById('fontSelect');
+    const customFontLabel = document.getElementById('customFontLabel');
+
+    fontSelect.addEventListener('change', (e) => {
+      if (e.target.value === 'custom') {
+        customFontLabel.classList.remove('hidden');
+      } else {
+        customFontLabel.classList.add('hidden');
+        textState.fontFamily = e.target.value;
+        render();
+      }
+    });
+
+    document.getElementById('fontFileInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const font = new FontFace('CustomUserFont', event.target.result);
+          font.load().then((loadedFont) => {
+            document.fonts.add(loadedFont);
+            textState.fontFamily = 'CustomUserFont';
+            showToast('Custom Font geladen!');
+            render();
+          });
+        };
+        reader.readAsArrayBuffer(file);
+      }
+    });
+
+    document.getElementById('copyBtn').addEventListener('click', async () => {
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.font = `${textState.size}px ${textState.fontFamily}`;
+      const metrics = tempCtx.measureText(textState.text);
+      const padding = 20;
+      tempCanvas.width = Math.ceil(metrics.width) + padding * 2;
+      tempCanvas.height = Math.ceil(textState.size * 1.5) + padding * 2;
+
+      tempCtx.save();
+      tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+      tempCtx.rotate((textState.rotation * Math.PI) / 180);
+      tempCtx.font = `${textState.size}px ${textState.fontFamily}`;
+      tempCtx.fillStyle = textState.color;
+      tempCtx.textAlign = 'center';
+      tempCtx.textBaseline = 'middle';
+      tempCtx.fillText(textState.text, 0, 0);
+      tempCtx.restore();
+
+      try {
+        tempCanvas.toBlob(async (blob) => {
+          if (!blob) return;
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+          showToast('In Zwischenablage kopiert!');
+        }, 'image/png');
+      } catch (err) {
+        showToast('Kopieren fehlgeschlagen.');
+      }
+    });
+
+    function showToast(msg) {
+      toast.innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function getCanvasCoords(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return {
+        x: (clientX - rect.left) * (canvas.width / rect.width),
+        y: (clientY - rect.top) * (canvas.height / rect.height)
+      };
+    }
+
+    canvas.addEventListener('mousedown', (e) => { isDragging = true; const coords = getCanvasCoords(e); dragStart = { x: coords.x - textState.x, y: coords.y - textState.y }; });
+    canvas.addEventListener('mousemove', (e) => { if (isDragging) { const coords = getCanvasCoords(e); textState.x = coords.x - dragStart.x; textState.y = coords.y - dragStart.y; render(); } });
+    window.addEventListener('mouseup', () => isDragging = false);
+    canvas.addEventListener('touchstart', (e) => { isDragging = true; const coords = getCanvasCoords(e); dragStart = { x: coords.x - textState.x, y: coords.y - textState.y }; });
+    canvas.addEventListener('touchmove', (e) => { if (isDragging) { const coords = getCanvasCoords(e); textState.x = coords.x - dragStart.x; textState.y = coords.y - dragStart.y; render(); } });
+    window.addEventListener('touchend', () => isDragging = false);
+
+    render();
+  </script>
+</body>
+</html>

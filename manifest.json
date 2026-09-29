@@ -20,6 +20,10 @@
     "params": {
       "files": [
         {
+          "name": "file",
+          "accept": ["image/*", "application/pdf"]
+        },
+        {
           "name": "note_image",
           "accept": ["image/*", "application/pdf"]
         }
